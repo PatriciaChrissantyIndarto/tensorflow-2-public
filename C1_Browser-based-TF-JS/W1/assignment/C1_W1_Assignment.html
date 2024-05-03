@@ -11,9 +11,11 @@
             // HINT: Remember that you are trying to build a classifier that 
             // can predict from the data whether the diagnosis is malignant or benign.
             const trainingData = tf.data.csv(trainingUrl, {
-                
-                // YOUR CODE HERE
-                
+                columnConfigs: {
+                    diagnosis: {
+                        isLabel: true
+                    }
+                }
             });
             
             // Convert the training data into arrays in the space below.
@@ -21,7 +23,11 @@
             // Therefore, there is no need to convert string labels into
             // a one-hot encoded array of label values like we did in the
             // Iris dataset example. 
-            const convertedTrainingData = // YOUR CODE HERE
+            const convertedTrainingData = await trainingData.map(record => {
+                const features = Object.values(record).map(value => parseFloat(value));
+                const label = features.splice(0, 1); // Remove the label from features
+                return { features, label };
+            }).toArray();
                   
             const testingUrl = '/data/wdbc-test.csv';
             
@@ -30,9 +36,11 @@
             // HINT: Remember that you are trying to build a classifier that 
             // can predict from the data whether the diagnosis is malignant or benign.
             const testingData = tf.data.csv(testingUrl, {
-                
-                // YOUR CODE HERE
-                
+                columnConfigs: {
+                    diagnosis: {
+                        isLabel: true
+                    }
+                }
             });
             
             // Convert the testing data into arrays in the space below.
@@ -40,13 +48,16 @@
             // Therefore, there is no need to convert string labels into
             // a one-hot encoded array of label values like we did in the
             // Iris dataset example. 
-            const convertedTestingData = // YOUR CODE HERE
-                  
+            const convertedTestingData = await testingData.map(record => {
+                const features = Object.values(record).map(value => parseFloat(value));
+                const label = features.splice(0, 1);
+                return { features, label };
+            }).toArray();
 
             // Specify the number of features in the space below.
             // HINT: You can get the number of features from the number of columns
             // and the number of labels in the training data. 
-            const numOfFeatures = // YOUR CODE HERE
+            const numOfFeatures = (await trainingData.columnNames()).length - 1;
             
                 
             // In the space below create a neural network that predicts 1 if the diagnosis is malignant
@@ -59,13 +70,33 @@
             // hidden layers should be enough to get a high accuracy.  
             const model = tf.sequential();
             
-            // YOUR CODE HERE
+            // Add the input layer
+            model.add(tf.layers.dense({
+                inputShape: [numOfFeatures], // Specify the input shape based on the number of features
+                units: 64, // Number of neurons in the input layer
+                activation: 'relu' // ReLU activation function
+                    }));
+            
+            // Add one or more hidden layers
+            model.add(tf.layers.dense({
+                units: 32, // Number of neurons in the hidden layer
+                activation: 'relu' // ReLU activation function
+                    }));
+            
+            // Add the output layer
+            model.add(tf.layers.dense({
+                units: 1, // Single output unit for binary classification
+                activation: 'sigmoid' // Sigmoid activation function for binary classification
+                    }));
 
             
             
             // Compile the model using the binaryCrossentropy loss, 
             // the rmsprop optimizer, and accuracy for your metrics. 
-            model.compile(// YOUR CODE HERE);
+            model.compile({
+                loss: 'binaryCrossentropy',
+                optimizer: 'rmsprop',
+                metrics: ['accuracy']});
             
             
             await model.fitDataset(convertedTrainingData, 
